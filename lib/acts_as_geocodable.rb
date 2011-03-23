@@ -34,7 +34,8 @@ module ActsAsGeocodable #:nodoc:
         :postal_code => :postal_code, :country => :country},
       :normalize_address => false,
       :distance_column => 'distance',
-      :units => :miles
+      :units => :miles,
+      :disable_geocode => false
     }.merge(options)
 
     write_inheritable_attribute :acts_as_geocodable_options, options
