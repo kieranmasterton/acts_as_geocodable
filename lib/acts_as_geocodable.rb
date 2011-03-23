@@ -214,7 +214,8 @@ module ActsAsGeocodable #:nodoc:
         new_geocode = Geocode.find_or_create_by_location self.to_location unless self.to_location.blank?
         if new_geocode && self.geocode != new_geocode
           run_callbacks :geocoding do
-            self.geocoding = Geocoding.new :geocode => new_geocode
+            self.geocoding = Geocoding.new :geocode => new_geocode unless self.acts_as_geocodable_options[:disable_geocode] == true 
+            #self.geocoding = Geocoding.new :geocode => new_geocode
             self.update_address self.acts_as_geocodable_options[:normalize_address]
           end
         elsif !new_geocode && self.geocoding
