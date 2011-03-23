@@ -38,6 +38,8 @@ module ActsAsGeocodable #:nodoc:
       :disable_geocode => false
     }.merge(options)
 
+    debug(options[:disable_geocode])
+
     if options[:disable_geocode] == false
 
       write_inheritable_attribute :acts_as_geocodable_options, options
