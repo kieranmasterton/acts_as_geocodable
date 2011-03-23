@@ -38,65 +38,68 @@ module ActsAsGeocodable #:nodoc:
       :disable_geocode => false
     }.merge(options)
 
-    write_inheritable_attribute :acts_as_geocodable_options, options
-    class_inheritable_reader :acts_as_geocodable_options
+    if options[:disable_geocode] == false
 
-    define_callbacks :geocoding
+      write_inheritable_attribute :acts_as_geocodable_options, options
+      class_inheritable_reader :acts_as_geocodable_options
 
-    has_one :geocoding, :as => :geocodable, :include => :geocode, :dependent => :destroy
+      define_callbacks :geocoding
 
-    after_save :attach_geocode
+      has_one :geocoding, :as => :geocodable, :include => :geocode, :dependent => :destroy
 
-    # Would love to do a simpler scope here, like:
-    # scope :with_geocode_fields, includes(:geocoding)
-    # But we need to use select() and it would get overwritten.
-    scope :with_geocode_fields, lambda {
-      joins("JOIN geocodings ON
-          #{table_name}.#{primary_key} = geocodings.geocodable_id AND
-            geocodings.geocodable_type = '#{model_name}'
-          JOIN geocodes ON geocodings.geocode_id = geocodes.id")
-    }
+      after_save :attach_geocode
 
-    # Use ActiveRecord ARel style syntax for finding records.
-    #
-    #   Model.origin("Chicago, IL", :within => 10)
-    #
-    # a +distance+ attribute indicating the distance
-    # to the origin is added to each of the results:
-    #
-    #   Model.origin("Portland, OR").first.distance #=> 388.383
-    #
-    # == Options
-    #
-    # * <tt>origin</tt>: A Geocode, String, or geocodable model that specifies
-    #   the origin
-    # * <tt>:within</tt>: Limit to results within this radius of the origin
-    # * <tt>:beyond</tt>: Limit to results outside of this radius from the origin
-    # * <tt>:units</tt>: Units to use for <tt>:within</tt> or <tt>:beyond</tt>.
-    #   Default is <tt>:miles</tt> unless specified otherwise in the +acts_as_geocodable+
-    #   declaration.
-    #
-    scope :origin, lambda {|*args|
-      origin = location_to_geocode(args[0])
-      options = {
-        :units => acts_as_geocodable_options[:units],
-      }.merge(args[1] || {})
-      distance_sql = sql_for_distance(origin, options[:units])
+      # Would love to do a simpler scope here, like:
+      # scope :with_geocode_fields, includes(:geocoding)
+      # But we need to use select() and it would get overwritten.
+      scope :with_geocode_fields, lambda {
+        joins("JOIN geocodings ON
+            #{table_name}.#{primary_key} = geocodings.geocodable_id AND
+              geocodings.geocodable_type = '#{model_name}'
+            JOIN geocodes ON geocodings.geocode_id = geocodes.id")
+      }
 
-      scope = with_geocode_fields.select("#{table_name}.*, #{distance_sql} AS
-           #{acts_as_geocodable_options[:distance_column]}")
+      # Use ActiveRecord ARel style syntax for finding records.
+      #
+      #   Model.origin("Chicago, IL", :within => 10)
+      #
+      # a +distance+ attribute indicating the distance
+      # to the origin is added to each of the results:
+      #
+      #   Model.origin("Portland, OR").first.distance #=> 388.383
+      #
+      # == Options
+      #
+      # * <tt>origin</tt>: A Geocode, String, or geocodable model that specifies
+      #   the origin
+      # * <tt>:within</tt>: Limit to results within this radius of the origin
+      # * <tt>:beyond</tt>: Limit to results outside of this radius from the origin
+      # * <tt>:units</tt>: Units to use for <tt>:within</tt> or <tt>:beyond</tt>.
+      #   Default is <tt>:miles</tt> unless specified otherwise in the +acts_as_geocodable+
+      #   declaration.
+      #
+      scope :origin, lambda {|*args|
+        origin = location_to_geocode(args[0])
+        options = {
+          :units => acts_as_geocodable_options[:units],
+        }.merge(args[1] || {})
+        distance_sql = sql_for_distance(origin, options[:units])
 
-      scope = scope.where("#{distance_sql} >  #{options[:beyond]}") if options[:beyond]
-      if options[:within]
-        scope = scope.where("(geocodes.latitude = :lat AND geocodes.longitude = :long) OR (#{distance_sql} <= #{options[:within]})", {:lat => origin.latitude, :long => origin.longitude})
-      end
-      scope
-    }
+        scope = with_geocode_fields.select("#{table_name}.*, #{distance_sql} AS
+             #{acts_as_geocodable_options[:distance_column]}")
 
-    scope :near, order("#{acts_as_geocodable_options[:distance_column]} ASC")
-    scope :far, order("#{acts_as_geocodable_options[:distance_column]} DESC")
+        scope = scope.where("#{distance_sql} >  #{options[:beyond]}") if options[:beyond]
+        if options[:within]
+          scope = scope.where("(geocodes.latitude = :lat AND geocodes.longitude = :long) OR (#{distance_sql} <= #{options[:within]})", {:lat => origin.latitude, :long => origin.longitude})
+        end
+        scope
+      }
 
-    include ActsAsGeocodable::Model
+      scope :near, order("#{acts_as_geocodable_options[:distance_column]} ASC")
+      scope :far, order("#{acts_as_geocodable_options[:distance_column]} DESC")
+
+      include ActsAsGeocodable::Model
+    end
   end
 
   module Model
@@ -215,8 +218,7 @@ module ActsAsGeocodable #:nodoc:
         new_geocode = Geocode.find_or_create_by_location self.to_location unless self.to_location.blank?
         if new_geocode && self.geocode != new_geocode
           run_callbacks :geocoding do
-            self.geocoding = Geocoding.new :geocode => new_geocode unless self.acts_as_geocodable_options[:disable_geocode] == true 
-            #self.geocoding = Geocoding.new :geocode => new_geocode
+            self.geocoding = Geocoding.new :geocode => new_geocode
             self.update_address self.acts_as_geocodable_options[:normalize_address]
           end
         elsif !new_geocode && self.geocoding
