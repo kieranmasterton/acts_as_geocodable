@@ -38,7 +38,7 @@ module ActsAsGeocodable #:nodoc:
       :disable_geocode => false
     }.merge(options)
 
-    debug(options[:disable_geocode])
+    RAILS_DEFAULT_LOGGER.info("disable geocode: " + options[:disable_geocode])
 
     if options[:disable_geocode] == false
 
