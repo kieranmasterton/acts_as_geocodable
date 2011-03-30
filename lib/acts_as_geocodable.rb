@@ -34,8 +34,7 @@ module ActsAsGeocodable #:nodoc:
         :postal_code => :postal_code, :country => :country},
       :normalize_address => false,
       :distance_column => 'distance',
-      :units => :miles,
-      :disable_geocode => false
+      :units => :miles
     }.merge(options)
 
     write_inheritable_attribute :acts_as_geocodable_options, options
@@ -215,7 +214,7 @@ module ActsAsGeocodable #:nodoc:
         new_geocode = Geocode.find_or_create_by_location self.to_location unless self.to_location.blank?
         if new_geocode && self.geocode != new_geocode
           run_callbacks :geocoding do
-            self.geocoding = Geocoding.new :geocode => new_geocode unless self.acts_as_geocodable_options[:disable_geocode] == true 
+            self.geocoding = Geocoding.new :geocode => new_geocode unless self.disable_geocode == true 
             #self.geocoding = Geocoding.new :geocode => new_geocode
             self.update_address self.acts_as_geocodable_options[:normalize_address]
           end
